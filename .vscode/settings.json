@@ -1,0 +1,3 @@
+{
+    "C_Cpp.clang_format_style": "{BasedOnStyle: Google, BraceWrapping: {AfterClass: false, AfterControlStatement: false, AfterEnum: false, AfterFunction: false, AfterNamespace: false, AfterStruct: false, AfterUnion: false}, BreakBeforeBraces: Attach}"
+}
