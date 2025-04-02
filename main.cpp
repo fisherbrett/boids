@@ -1,6 +1,5 @@
 #include <cmath>
 #include <iostream>
-#include <memory>
 #include <random>
 #include <vector>
 
@@ -10,7 +9,7 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-#define MAX_BOIDS 500
+#define MAX_BOIDS 2000
 
 #define SEPARATION_DIST \
   4  // distance away to look for neighbors for separation force
@@ -43,7 +42,7 @@ class Boid {
   float dx, dy;
   Boid(int x, int y, int dx, int dy) : x(x), y(y), dx(dx), dy(dy) {}
 
-  void move(const std::vector<std::unique_ptr<Boid>> &neighboring_boids) {
+  void move(const std::vector<Boid *> &neighboring_boids) {
     // Separation vars
     float sep_dx = 0;
     float sep_dy = 0;
@@ -60,7 +59,7 @@ class Boid {
     float ypos_avg = 0;
 
     for (const auto &other : neighboring_boids) {
-      if (other.get() != this) {
+      if (other != this) {
         int dx = x - other->x;
         int dy = y - other->y;
         int dist_sq = dx * dx + dy * dy;
@@ -69,7 +68,6 @@ class Boid {
             SEPARATION_DIST * SEPARATION_DIST) {  // Check against square since
                                                   // it's faster than sq root
           // add separation force (stronger when the neighbor is closer)
-          // float factor = 1.0f / (dist_sq + 1);  // avoid division by zero
           sep_dx += dx;
           sep_dy += dy;
         }
@@ -146,30 +144,12 @@ class Game {
  private:
   SDL_Renderer *renderer;
   SDL_Window *window;
-  std::vector<std::unique_ptr<Boid>> boids;
-  std::vector<Boid *> boid_position_grid[GRID_ROWS][GRID_COLS];
+  std::vector<Boid *> boids;
+  std::vector<Boid *> boid_position_grid[GRID_COLS][GRID_COLS];
 
   // FPS
   Uint32 lastTime;
   float fps;
-
-  void updateGrid() {
-    for (int i = 0; i < GRID_COLS; i++) {
-      for (int j = 0; j < GRID_ROWS; j++) {
-        boid_position_grid[i][j].clear();
-      }
-    }
-
-    // Place boids in grid cells
-    for (const auto &boid : boids) {
-      int grid_x = boid->x / VISIBLE_DIST;
-      int grid_y = boid->y / VISIBLE_DIST;
-      if (grid_x >= 0 && grid_x < GRID_COLS && grid_y >= 0 &&
-          grid_y < GRID_ROWS) {
-        boid_position_grid[grid_y][grid_x].push_back(boid.get());
-      }
-    }
-  }
 
   std::vector<Boid *> get_neighboring_boids(Boid &boid) {
     std::vector<Boid *> neighbors;
@@ -198,7 +178,6 @@ class Game {
   void render_boids() {
     // updateGrid();
     for (const auto &boid : boids) {
-      // auto neighboring_boids = get_neighboring_boids(*boid);
       boid->move(boids);
 
       // Draw a rectangle for each boid
@@ -226,9 +205,16 @@ class Game {
       int dx = vel_dist(gen) * (sign_dist(gen) ? 1 : -1);
       int dy = vel_dist(gen) * (sign_dist(gen) ? 1 : -1);
 
-      boids.push_back(std::make_unique<Boid>(x, y, dx, dy));
+      boids.push_back(new Boid(x, y, dx, dy));
     }
   };
+
+  ~Game() {
+    for (const auto &boid : boids) {
+      delete boid;
+    }
+    boids.clear();
+  }
 
   bool init() {
     // Initialize SDL
